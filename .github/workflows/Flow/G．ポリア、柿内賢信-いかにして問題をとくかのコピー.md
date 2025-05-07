@@ -1,0 +1,36 @@
+---
+kindle-sync:
+  bookId: '12549'
+  title: いかにして問題をとくか
+  author: G．ポリア、柿内賢信
+  asin: B09T94D62K
+  lastAnnotatedDate: '2024-08-25'
+  bookImageUrl: 'https://m.media-amazon.com/images/I/71m0zuTpZKL._SY160.jpg'
+  highlightsCount: 6
+---
+# いかにして問題をとくか
+## Metadata
+* Author: [G．ポリア、柿内賢信](https://www.amazon.comundefined)
+* ASIN: B09T94D62K
+* Reference: https://www.amazon.com/dp/B09T94D62K
+* [Kindle link](kindle://book?action=open&asin=B09T94D62K)
+
+## Highlights
+与えられた問題をと くためにはしばしば， より簡単な類推的な問題を利用することがで き， そこでの方法や結果あるいはその両方を利用しうるのである． — location: [84762](kindle://book?action=open&asin=B09T94D62K&location=84762) ^ref-60819
+
+---
+実際問題をとくことは本質において データと未知数との関係を見出すことである． — location: [88693](kindle://book?action=open&asin=B09T94D62K&location=88693) ^ref-15806
+
+---
+信ぜよ， しかし目を離すな， — location: [89567](kindle://book?action=open&asin=B09T94D62K&location=89567) ^ref-30487
+
+---
+前にそれ を見たことはないか． または同じ問題を少し違った形で見たことが あるか． 似た問題を知っているか． 役に立つ定理を知っているか． 未知のものをよく見よ． そうして未知のものが同じかまたはよく似 ている見なれた問題を考えるように努めよ． — location: [93499](kindle://book?action=open&asin=B09T94D62K&location=93499) ^ref-48025
+
+---
+定義に帰ったことが， 議論を試すに役立つということは — location: [97433](kindle://book?action=open&asin=B09T94D62K&location=97433) ^ref-48507
+
+---
+要約すれば， われわれはよりむずかしい， より野心的で一般的な もとの問題をとくための踏石として， もっとやさしい， 内輪的な， 特殊な補助問題をとくのである． — location: [100053](kindle://book?action=open&asin=B09T94D62K&location=100053) ^ref-59095
+
+---
