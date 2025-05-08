@@ -1,9 +1,9 @@
-name: Sync Obsidian → Notion (Whole Vault)
+name: Sync Obsidian → Notion (Direct)
 
 on:
   push:
     paths:
-      - "**/*.md"          # リポジトリ内すべての Markdown
+      - "**/*.md"          # すべての Markdown
       - "!.github/**"      # ワークフロー自身は除外
   workflow_dispatch:
 
@@ -24,23 +24,9 @@ jobs:
       - name: Install dependencies
         run: npm install @notionhq/client @vrerv/md-to-notion
 
-      # -------- Root page --------
-      - name: Get or create Vault root page
-        id: vault_page
-        run: |
-          EXISTING=$(node -e "const {Client}=require('@notionhq/client');(async()=>{const notion=new Client({auth:process.env.NOTION_TOKEN});const children=(await notion.blocks.children.list({block_id:process.env.PARENT_PAGE_ID,page_size:100})).results.find(b=>b.type==='child_page'&&b.child_page.title==='Obsidian Vault');console.log(children?children.id:'');})();")
-          if [ -z "$EXISTING" ]; then
-            PAGE_ID=$(node -e "const {Client}=require('@notionhq/client');(async()=>{const notion=new Client({auth:process.env.NOTION_TOKEN});const page=await notion.pages.create({parent:{page_id:process.env.PARENT_PAGE_ID},properties:{title:{title:[{text:{content:'Obsidian Vault'}}]}}});console.log(page.id);})();")
-          else
-            PAGE_ID=$EXISTING
-          fi
-          echo "VAULT_PAGE_ID=$PAGE_ID" >> $GITHUB_ENV
+      # 直接 PARENT_PAGE_ID に同期（追加の子ページは作らない）
+      - name: Sync Markdown to Notion (root level)
+        run: npx @vrerv/md-to-notion --token "$NOTION_TOKEN" --page-id "$PARENT_PAGE_ID" --delete --verbose .
         env:
           NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
           PARENT_PAGE_ID: ${{ secrets.PARENT_PAGE_ID }}
-
-      - name: Sync entire repository to Notion
-        run: npx @vrerv/md-to-notion --token "$NOTION_TOKEN" --page-id "$VAULT_PAGE_ID" --delete --verbose .
-        env:
-          NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
-          VAULT_PAGE_ID: ${{ env.VAULT_PAGE_ID }}
