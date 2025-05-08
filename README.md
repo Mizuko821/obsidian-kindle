@@ -1,1 +1,2 @@
 # obsidian-kindle
+これはKindleでハイライトしたものをメモに書き写し、notionに転記するためのシステムです。
