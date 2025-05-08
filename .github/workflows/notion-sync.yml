@@ -1,81 +1,235 @@
-name: Sync Obsidian Vault → Notion
+name: Sync Obsidian → Notion (hierarchy)
 
 on:
   push:
     paths:
-      - "**/*.md"
-  workflow_dispatch:
+      - "Flow/**.md"       # Flowフォルダ内のMarkdownファイル
+      - "Archive/**.md"    # Archiveフォルダ内のMarkdownファイル
+      - "Stock/**.md"      # Stockフォルダ内のMarkdownファイル
+  workflow_dispatch:       # 手動実行も可能に
 
 jobs:
-  sync:
+  sync-to-notion:
     runs-on: ubuntu-latest
     steps:
-      # 1. コードを取得
-      - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
-
-      # 2. Node.js 環境
-      - uses: actions/setup-node@v4
+          
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
           node-version: 20
-
-      # 3. ライブラリをインストール
-      - run: npm install @notionhq/client @vrerv/md-to-notion
-
-      # 4. 親ページの存在チェック＆作成（１回だけ）
-      - id: ensure_page
+      
+      # 必要な依存関係をインストール
+      - name: Install dependencies
+        run: npm install @notionhq/client @vrerv/md-to-notion
+      
+      # Flow フォルダの同期
+      - name: Create Flow parent page if not exists
+        id: create_flow_page
         run: |
-          # 4-a. 既存ページを検索
-          EXISTING=$(node << 'EOF'
-          import { Client } from "@notionhq/client";
-          const notion = new Client({ auth: process.env.NOTION_TOKEN });
-
-          const ROOT_NAME = "Obsidian-sync";
-          
-          (async () => {
-            const res = await notion.search({
-              query: ROOT_NAME,
-              filter: { property: "object", value: "page" }
-            });
-            // 最初にヒットしたページIDを返却（なければ空文字）
-            console.log(res.results[0]?.id || "");
-          })();
-          EOF
-          )
-          # 4-b. なければ作成
-          if [ -z "$EXISTING" ]; then
-            PAGE_ID=$(node << 'EOF'
-            import { Client } from "@notionhq/client";
-            const notion = new Client({ auth: process.env.NOTION_TOKEN });
-            (async () => {
-              const page = await notion.pages.create({
-                parent: { page_id: process.env.PARENT_PAGE_ID },
-                properties: {
-                  title: { title: [{ text: { content: ROOT_NAME } }] }
+          # スクリプトでFlowページを確認・作成
+          FLOW_PAGE_ID=$(node -e '
+            const { Client } = require("@notionhq/client");
+            
+            async function main() {
+              const notion = new Client({ auth: process.env.NOTION_TOKEN });
+              
+              const response = await notion.search({
+                query: "Flow",
+                filter: {
+                  property: "object",
+                  value: "page"
                 }
               });
-              console.log(page.id);
-            })();
-            EOF
-            )
-          else
-            PAGE_ID=$EXISTING
-          fi
-          echo "PAGE_ID=$PAGE_ID" >> $GITHUB_ENV
+              
+              const flowPage = response.results.find(page => 
+                page.parent?.page_id === process.env.PARENT_PAGE_ID && 
+                page.properties?.title?.title?.[0]?.plain_text === "Flow"
+              );
+              
+              if (flowPage) {
+                console.log(flowPage.id);
+              } else {
+                const newPage = await notion.pages.create({
+                  parent: {
+                    page_id: process.env.PARENT_PAGE_ID
+                  },
+                  properties: {
+                    title: {
+                      title: [
+                        {
+                          text: {
+                            content: "Flow"
+                          }
+                        }
+                      ]
+                    }
+                  }
+                });
+                console.log(newPage.id);
+              }
+            }
+            
+            main().catch(error => {
+              console.error(error);
+              process.exit(1);
+            });
+          ')
+          echo "FLOW_PAGE_ID=${FLOW_PAGE_ID}" >> $GITHUB_ENV
+          echo "flow_page_id=${FLOW_PAGE_ID}" >> $GITHUB_OUTPUT
         env:
           NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
           PARENT_PAGE_ID: ${{ secrets.PARENT_PAGE_ID }}
 
-      # 5. Vault ルート全体を Notion に同期
-      - name: Sync all Markdown
+      - name: Sync Flow folder to Notion
         run: |
           npx @vrerv/md-to-notion \
             --token "$NOTION_TOKEN" \
-            --page-id "$PAGE_ID" \
+            --page-id "$FLOW_PAGE_ID" \
             --delete \
             --verbose \
-            .
+            "Flow"
         env:
           NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
-          PAGE_ID: ${{ env.PAGE_ID }}
+          FLOW_PAGE_ID: ${{ steps.create_flow_page.outputs.flow_page_id }}
+      
+      # Stock フォルダの同期（同様の処理）
+      - name: Create Stock parent page if not exists
+        id: create_stock_page
+        run: |
+          STOCK_PAGE_ID=$(node -e '
+            const { Client } = require("@notionhq/client");
+            
+            async function main() {
+              const notion = new Client({ auth: process.env.NOTION_TOKEN });
+              
+              const response = await notion.search({
+                query: "Stock",
+                filter: {
+                  property: "object",
+                  value: "page"
+                }
+              });
+              
+              const stockPage = response.results.find(page => 
+                page.parent?.page_id === process.env.PARENT_PAGE_ID && 
+                page.properties?.title?.title?.[0]?.plain_text === "Stock"
+              );
+              
+              if (stockPage) {
+                console.log(stockPage.id);
+              } else {
+                const newPage = await notion.pages.create({
+                  parent: {
+                    page_id: process.env.PARENT_PAGE_ID
+                  },
+                  properties: {
+                    title: {
+                      title: [
+                        {
+                          text: {
+                            content: "Stock"
+                          }
+                        }
+                      ]
+                    }
+                  }
+                });
+                console.log(newPage.id);
+              }
+            }
+            
+            main().catch(error => {
+              console.error(error);
+              process.exit(1);
+            });
+          ')
+          echo "STOCK_PAGE_ID=${STOCK_PAGE_ID}" >> $GITHUB_ENV
+          echo "stock_page_id=${STOCK_PAGE_ID}" >> $GITHUB_OUTPUT
+        env:
+          NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
+          PARENT_PAGE_ID: ${{ secrets.PARENT_PAGE_ID }}
+
+      - name: Sync Stock folder to Notion
+        run: |
+          npx @vrerv/md-to-notion \
+            --token "$NOTION_TOKEN" \
+            --page-id "$STOCK_PAGE_ID" \
+            --delete \
+            --verbose \
+            "Stock"
+        env:
+          NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
+          STOCK_PAGE_ID: ${{ steps.create_stock_page.outputs.stock_page_id }}
+      
+      # Archive フォルダも同様に同期
+      - name: Create Archive parent page if not exists
+        id: create_archive_page
+        run: |
+          ARCHIVE_PAGE_ID=$(node -e '
+            const { Client } = require("@notionhq/client");
+            
+            async function main() {
+              const notion = new Client({ auth: process.env.NOTION_TOKEN });
+              
+              const response = await notion.search({
+                query: "Archive",
+                filter: {
+                  property: "object",
+                  value: "page"
+                }
+              });
+              
+              const archivePage = response.results.find(page => 
+                page.parent?.page_id === process.env.PARENT_PAGE_ID && 
+                page.properties?.title?.title?.[0]?.plain_text === "Archive"
+              );
+              
+              if (archivePage) {
+                console.log(archivePage.id);
+              } else {
+                const newPage = await notion.pages.create({
+                  parent: {
+                    page_id: process.env.PARENT_PAGE_ID
+                  },
+                  properties: {
+                    title: {
+                      title: [
+                        {
+                          text: {
+                            content: "Archive"
+                          }
+                        }
+                      ]
+                    }
+                  }
+                });
+                console.log(newPage.id);
+              }
+            }
+            
+            main().catch(error => {
+              console.error(error);
+              process.exit(1);
+            });
+          ')
+          echo "ARCHIVE_PAGE_ID=${ARCHIVE_PAGE_ID}" >> $GITHUB_ENV
+          echo "archive_page_id=${ARCHIVE_PAGE_ID}" >> $GITHUB_OUTPUT
+        env:
+          NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
+          PARENT_PAGE_ID: ${{ secrets.PARENT_PAGE_ID }}
+
+      - name: Sync Archive folder to Notion
+        run: |
+          npx @vrerv/md-to-notion \
+            --token "$NOTION_TOKEN" \
+            --page-id "$ARCHIVE_PAGE_ID" \
+            --delete \
+            --verbose \
+            "Archive"
+        env:
+          NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
+          ARCHIVE_PAGE_ID: ${{ steps.create_archive_page.outputs.archive_page_id }}
