@@ -26,11 +26,13 @@ jobs:
       # 4. 親ページの存在チェック＆作成（１回だけ）
       - id: ensure_page
         run: |
-          ROOT_NAME="Obsidian-sync"
           # 4-a. 既存ページを検索
           EXISTING=$(node << 'EOF'
           import { Client } from "@notionhq/client";
           const notion = new Client({ auth: process.env.NOTION_TOKEN });
+
+          const ROOT_NAME = "Obsidian-sync";
+          
           (async () => {
             const res = await notion.search({
               query: ROOT_NAME,
