@@ -1,11 +1,9 @@
-name: Sync Obsidian → Notion (hierarchy)
+name: Sync Obsidian → Notion (Flow-only)
 
 on:
   push:
     paths:
       - "Flow/**/*.md"
-      - "Stock/**/*.md"
-      - "Archive/**/*.md"
   workflow_dispatch:
 
 jobs:
@@ -45,45 +43,3 @@ jobs:
         env:
           NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
           FLOW_PAGE_ID: ${{ env.FLOW_PAGE_ID }}
-
-      # -------- Stock --------
-      - name: Get or create Stock page
-        id: stock_page
-        run: |
-          EXISTING=$(node -e "const {Client}=require('@notionhq/client');(async()=>{const notion=new Client({auth:process.env.NOTION_TOKEN});const child=(await notion.blocks.children.list({block_id:process.env.PARENT_PAGE_ID,page_size:100})).results.find(b=>b.type==='child_page'&&b.child_page.title==='Stock');console.log(child?child.id:'');})();")
-          if [ -z "$EXISTING" ]; then
-            PAGE_ID=$(node -e "const {Client}=require('@notionhq/client');(async()=>{const notion=new Client({auth:process.env.NOTION_TOKEN});const page=await notion.pages.create({parent:{page_id:process.env.PARENT_PAGE_ID},properties:{title:{title:[{text:{content:'Stock'}}]}}});console.log(page.id);})();")
-          else
-            PAGE_ID=$EXISTING
-          fi
-          echo "STOCK_PAGE_ID=$PAGE_ID" >> $GITHUB_ENV
-        env:
-          NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
-          PARENT_PAGE_ID: ${{ secrets.PARENT_PAGE_ID }}
-
-      - name: Sync Stock folder to Notion
-        run: npx @vrerv/md-to-notion --token "$NOTION_TOKEN" --page-id "$STOCK_PAGE_ID" --delete --verbose "Stock"
-        env:
-          NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
-          STOCK_PAGE_ID: ${{ env.STOCK_PAGE_ID }}
-
-      # -------- Archive --------
-      - name: Get or create Archive page
-        id: archive_page
-        run: |
-          EXISTING=$(node -e "const {Client}=require('@notionhq/client');(async()=>{const notion=new Client({auth:process.env.NOTION_TOKEN});const child=(await notion.blocks.children.list({block_id:process.env.PARENT_PAGE_ID,page_size:100})).results.find(b=>b.type==='child_page'&&b.child_page.title==='Archive');console.log(child?child.id:'');})();")
-          if [ -z "$EXISTING" ]; then
-            PAGE_ID=$(node -e "const {Client}=require('@notionhq/client');(async()=>{const notion=new Client({auth:process.env.NOTION_TOKEN});const page=await notion.pages.create({parent:{page_id:process.env.PARENT_PAGE_ID},properties:{title:{title:[{text:{content:'Archive'}}]}}});console.log(page.id);})();")
-          else
-            PAGE_ID=$EXISTING
-          fi
-          echo "ARCHIVE_PAGE_ID=$PAGE_ID" >> $GITHUB_ENV
-        env:
-          NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
-          PARENT_PAGE_ID: ${{ secrets.PARENT_PAGE_ID }}
-
-      - name: Sync Archive folder to Notion
-        run: npx @vrerv/md-to-notion --token "$NOTION_TOKEN" --page-id "$ARCHIVE_PAGE_ID" --delete --verbose "Archive"
-        env:
-          NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
-          ARCHIVE_PAGE_ID: ${{ env.ARCHIVE_PAGE_ID }}
